@@ -4,8 +4,8 @@
     <choose>
       <!-- Route to local model when x-model-target is "local" or the subscription name is "Local Model". -->
       <when condition="@(context.Request.Headers.GetValueOrDefault('x-model-target','') == 'local' || string.Equals(context.Subscription?.Name, 'Local Model', System.StringComparison.OrdinalIgnoreCase))">
-        <!-- Replace YOUR_LOCAL_IP with the hostname or IP address that APIM can reach. Do not use localhost unless APIM runs on the same machine. -->
-        <set-backend-service base-url="http://YOUR_LOCAL_IP:11434/v1/chat/completions" />
+        <!-- DevTunnel URL exposing local Ollama. Recreate with: devtunnel host ollama-aigw -->
+        <set-backend-service base-url="https://299hwf0x-11434.uks1.devtunnels.ms/v1/chat/completions" />
         <set-variable name="backendRegion" value="on-premises" />
       </when>
       <otherwise>
