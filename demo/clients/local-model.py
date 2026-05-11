@@ -17,9 +17,10 @@ def build_client() -> tuple[OpenAI, str, str, str]:
 
         return (
             OpenAI(
-                base_url=ai_gateway_url.rstrip("/"),
+                base_url=ai_gateway_url.rstrip("/") + "/v1",
                 api_key=subscription_key,
                 default_headers={
+                    "api-key": subscription_key,
                     "Ocp-Apim-Subscription-Key": subscription_key,
                     "x-model-target": "local",
                 },
