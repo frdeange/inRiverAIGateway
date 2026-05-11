@@ -23,7 +23,7 @@ def build_client() -> tuple[AzureOpenAI, str, str, str]:
                     azure_endpoint=endpoint,
                     api_key=subscription_key,
                     api_version=API_VERSION,
-                    default_headers={"Ocp-Apim-Subscription-Key": subscription_key},
+                    default_headers={"api-key": subscription_key, "Ocp-Apim-Subscription-Key": subscription_key},
                 ),
                 deployment,
                 endpoint,
