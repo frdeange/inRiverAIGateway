@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 from openai import APIStatusError, AzureOpenAI, RateLimitError
 
 
-API_VERSION = "2024-10-21"
-REQUESTS_PER_TIER = 12
+API_VERSION = os.getenv("API_VERSION", "2024-10-21")
+REQUESTS_PER_TIER = int(os.getenv("REQUESTS_PER_TIER", 10))
 
 
 def load_tiers():
