@@ -86,6 +86,7 @@ def main() -> int:
 
     backend_counts = collections.Counter()
     status_counts = collections.Counter()
+    region_counts = collections.Counter()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=TOTAL_REQUESTS) as executor:
         futures = []
@@ -96,6 +97,8 @@ def main() -> int:
             status, backend, x_ms_region = future.result()
             status_counts[status] += 1
             backend_counts[backend] += 1
+            if x_ms_region and x_ms_region != "N/A":
+                region_counts[x_ms_region] += 1
             label = "OK" if status == 200 else ("RATE-LIMITED" if status == 429 else "ERROR")
             backend_label = "x-backend-region" if ai_gateway_url else "backend"
             backend_value = f"\x1b[1;36m{backend}\x1b[0m" if ai_gateway_url else backend
@@ -111,6 +114,13 @@ def main() -> int:
     print("Backend distribution:")
     for backend, count in backend_counts.items():
         print(f"  {backend}: {count}")
+
+    if region_counts:
+        total = sum(region_counts.values())
+        print("\n🌍 Region distribution (x-ms-region):")
+        for region, count in region_counts.most_common():
+            pct = count / total * 100
+            print(f"  {region}: {count} ({pct:.0f}%)")
 
     return 0
 
