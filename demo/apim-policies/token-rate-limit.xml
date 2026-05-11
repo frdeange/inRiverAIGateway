@@ -1,0 +1,19 @@
+<policies>
+  <inbound>
+    <base />
+    <choose>
+      <when condition="@(string.Equals(context.Subscription?.Name, 'Rogue App', System.StringComparison.OrdinalIgnoreCase) || string.Equals((string)context.Request.Headers.GetValueOrDefault('x-client-app', ''), 'rogue', System.StringComparison.OrdinalIgnoreCase) || string.Equals((string)context.Request.Headers.GetValueOrDefault('x-client-app', ''), 'rogue-app', System.StringComparison.OrdinalIgnoreCase))">
+        <azure-openai-token-limit tokens-per-minute="1000" estimate-prompt-tokens="true" remaining-tokens-header-name="x-remaining-tokens" tokens-consumed-header-name="x-tokens-consumed" counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />
+      </when>
+    </choose>
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

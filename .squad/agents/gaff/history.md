@@ -12,3 +12,5 @@
 - 2026-05-11T01:53:54.450+02:00 — Demo provisioning baseline must use Microsoft AI Foundry Hub/Projects (EU regions) and avoid `az cognitiveservices ... --kind OpenAI` standalone resources.
 - 2026-05-11T01:46:23.418+02:00 — Provisioning scripts should emit a ready-to-edit `.env` with Azure OpenAI endpoints/keys plus APIM placeholders so demo clients can run immediately after manual APIM creation.
 - 2026-05-11T01:46:23.418+02:00 — For live AI Gateway demos, keep policies as separate XML files and inject one at a time because APIM supports a single policy document per scope.
+
+- 2026-05-11T02:27:49.189+02:00 — Real resource alignment done for demo assets: .env, APIM load-balancing/failover policies (Sweden/France/Spain + gpt-5.2), Entra-ID-authenticated Python clients, and FastMCP 3.0 ACA server packaging/deploy script.

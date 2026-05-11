@@ -1,0 +1,83 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# AI Gateway Demo Workbook\nUse this workbook during the live demo to visualize governance, throttling, and failover behavior."
+      },
+      "name": "titleText"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "appInsightsResource",
+            "name": "Application Insights",
+            "type": 5,
+            "resourceType": "microsoft.insights/components",
+            "isRequired": true
+          }
+        ]
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "traces\n| where timestamp > ago(30m)\n| where message startswith \"metadata tenant_id=\"\n| extend tenant = tostring(customDimensions.tenant_id), tokens = todouble(customDimensions.tokens)\n| summarize total_tokens=sum(tokens), requests=count() by tenant\n| order by total_tokens desc",
+        "size": 0,
+        "title": "Live token consumption per subscription/tenant",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": ["{appInsightsResource}"]
+      },
+      "name": "tokenConsumption"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| where timestamp > ago(30m)\n| extend backend=tostring(customDimensions.backend_region)\n| summarize rpm=count() by backend, bin(timestamp, 1m)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Request rate per backend region",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": ["{appInsightsResource}"],
+        "visualization": "timechart"
+      },
+      "name": "backendRate"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "requests\n| where timestamp > ago(30m)\n| where resultCode == \"429\"\n| summarize throttled=count() by bin(timestamp, 1m), subscription=tostring(customDimensions.SubscriptionId)\n| order by timestamp asc",
+        "size": 0,
+        "title": "HTTP 429 responses over time",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": ["{appInsightsResource}"],
+        "visualization": "timechart"
+      },
+      "name": "throttles"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "traces\n| where timestamp > ago(30m)\n| where message has_any (\"circuit\", \"failover\")\n| project timestamp, message, severityLevel, backend=tostring(customDimensions.backend_region)\n| order by timestamp desc",
+        "size": 0,
+        "title": "Circuit breaker / failover events",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "crossComponentResources": ["{appInsightsResource}"]
+      },
+      "name": "circuitEvents"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
