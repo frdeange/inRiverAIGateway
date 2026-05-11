@@ -492,7 +492,7 @@ async function main() {
   createSlide2(pres);
   
   // Save
-  const outputPath = "C:\\repos\\inRiverAIGateway\\demo\\local-model-architecture.pptx";
+  const outputPath = "C:\\repos\\inRiverAIGateway\\src\\local-model-architecture.pptx";
   await pres.writeFile({ fileName: outputPath });
   console.log(`✅ Created: ${outputPath}`);
 }

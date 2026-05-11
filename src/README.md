@@ -1,6 +1,6 @@
 # AI Gateway Demo (Real Azure Resources)
 
-This demo folder is aligned with the live environment as of **2026-05-11T02:27:49.189+02:00**.
+This src folder is aligned with the live environment as of **2026-05-11T02:27:49.189+02:00**.
 
 ## Real resources
 
@@ -16,11 +16,11 @@ This demo folder is aligned with the live environment as of **2026-05-11T02:27:4
 
 ## 1) Configure demo environment
 
-`demo/.env` now contains all real names and endpoints.
+`src/.env` now contains all real names and endpoints.
 
 ## 2) Install SDK dependencies
 
-From `demo\clients`:
+From `src`:
 
 ```powershell
 pip install -r .\requirements.txt
@@ -29,7 +29,7 @@ pip install -r .\requirements.txt
 The clients now use:
 - `openai` (`AzureOpenAI` client)
 - `azure-identity` (`DefaultAzureCredential` for Entra ID auth)
-- `python-dotenv` (loads `demo\.env`)
+- `python-dotenv` (loads `src\.env`)
 
 With `disableLocalAuth=true`, API keys are not required.
 
@@ -38,7 +38,7 @@ With `disableLocalAuth=true`, API keys are not required.
 Apply one policy at a time with your APIM name and API ID:
 
 ```powershell
-cd C:\repos\inRiverAIGateway\demo
+cd C:\repos\inRiverAIGateway\src
 .\inject-policies.ps1 -ApimName <apim-name> -ApiId <api-id> -PolicyName load-balancer
 .\inject-policies.ps1 -ApimName <apim-name> -ApiId <api-id> -PolicyName failover-circuit-breaker
 ```
@@ -50,19 +50,20 @@ Policy updates included:
 
 ## 4) Run demo clients
 
-From `demo`:
+From `src`:
 
 ```powershell
-python .\clients\good-app.py
-python .\clients\rogue-app.py
-python .\clients\load-test.py
+python .\demo1\good-app.py
+python .\demo1\rogue-app.py
+python .\demo1\load-test.py
+python .\demo2\smart-app.py
 ```
 
-Clients read values from `demo/.env` (or environment variables) and authenticate via Entra ID with `DefaultAzureCredential`.
+Clients read values from `src/.env` (or environment variables) and authenticate via Entra ID with `DefaultAzureCredential`.
 
 ## 5) Deploy the FastMCP server to Azure Container Apps
 
-From `demo\mcp-server`:
+From `src\mcp-server`:
 
 ```powershell
 .\deploy-aca.ps1

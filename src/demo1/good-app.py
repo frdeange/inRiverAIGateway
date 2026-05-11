@@ -51,7 +51,7 @@ def main() -> int:
     endpoint = os.getenv("AI_GATEWAY_URL", "").strip() or os.getenv("FOUNDRY_SEC_ENDPOINT", "").strip()
 
     if not endpoint:
-        print("Set FOUNDRY_SEC_ENDPOINT (or AI_GATEWAY_URL) in environment or demo/.env.")
+        print("Set FOUNDRY_SEC_ENDPOINT (or AI_GATEWAY_URL) in environment or src/.env.")
         return 1
 
     client, resolved_endpoint, mode_label = build_client()
