@@ -376,10 +376,11 @@
       <button class="nav-btn" data-page="demo2">Demo 2 — The Token Police<small><span id="meta-demo2">0/8 done · 00:00</span></small></button>
       <button class="nav-btn" data-page="demo3">Demo 3 — The AI Traffic Controller<small><span id="meta-demo3">0/8 done · 00:00</span></small></button>
       <button class="nav-btn" data-page="demo4">Demo 4 — MCP Gateway<small><span id="meta-demo4">0/7 done · 00:00</span></small></button>
+      <button class="nav-btn" data-page="demo5">Demo Bonus — Local Model Routing<small><span id="meta-demo5">0/5 done · 00:00</span></small></button>
 
       <div class="progress">
         <strong>Overall progress</strong>
-        <div id="overallText" class="muted">0 of 30 steps done</div>
+        <div id="overallText" class="muted">0 of 35 steps done</div>
         <div class="progress-bar"><div id="overallFill" class="progress-fill"></div></div>
       </div>
     </aside>
@@ -410,7 +411,7 @@
   </div>
 
   <script>
-    const envBlock = `# demo/.env\nFOUNDRY_SEC_ENDPOINT=https://inriver-aigw-foundry-sec.openai.azure.com\nFOUNDRY_FRC_ENDPOINT=https://inriver-aigw-foundry-frc.openai.azure.com\nFOUNDRY_ESP_ENDPOINT=https://inriver-aigw-foundry-esp.openai.azure.com\nMODEL_DEPLOYMENT=gpt-5.2\n# AI Gateway (uncomment for governed demo mode)\n# AI_GATEWAY_URL=https://<your-apim>.azure-api.net/openai\n# AI_GATEWAY_KEY=<your-apim-subscription-key>\nAPPINSIGHTS_NAME=inriver-aigw-apim\nRESOURCE_GROUP=rg-inRiverAIGW\nMCP_SERVER_URL=https://inriver-aigw-acamcp.happystone-8616c4eb.swedencentral.azurecontainerapps.io/mcp`;
+    const envBlock = `# demo/.env\nFOUNDRY_SEC_ENDPOINT=https://inriver-aigw-foundry-sec.openai.azure.com\nFOUNDRY_FRC_ENDPOINT=https://inriver-aigw-foundry-frc.openai.azure.com\nFOUNDRY_ESP_ENDPOINT=https://inriver-aigw-foundry-esp.openai.azure.com\nMODEL_DEPLOYMENT=gpt-5.2\n# AI Gateway (uncomment for governed demo mode)\n# AI_GATEWAY_URL=https://<your-apim>.azure-api.net/openai\n# AI_GATEWAY_KEY=<your-apim-subscription-key>\n# Local Model (Ollama)\nLOCAL_MODEL_URL=http://localhost:11434/v1\nLOCAL_MODEL_NAME=phi4-mini\nAPPINSIGHTS_NAME=inriver-aigw-apim\nRESOURCE_GROUP=rg-inRiverAIGW\nMCP_SERVER_URL=https://inriver-aigw-acamcp.happystone-8616c4eb.swedencentral.azurecontainerapps.io/mcp`;
 
     const policies = {
       tokenRateLimit: `<policies>\n  <inbound>\n    <base />\n    <choose>\n      <when condition="@(string.Equals(context.Subscription?.Name, 'Rogue App', System.StringComparison.OrdinalIgnoreCase) || string.Equals((string)context.Request.Headers.GetValueOrDefault('x-client-app', ''), 'rogue', System.StringComparison.OrdinalIgnoreCase) || string.Equals((string)context.Request.Headers.GetValueOrDefault('x-client-app', ''), 'rogue-app', System.StringComparison.OrdinalIgnoreCase))">\n        <azure-openai-token-limit tokens-per-minute="1000" estimate-prompt-tokens="true" remaining-tokens-header-name="x-remaining-tokens" tokens-consumed-header-name="x-tokens-consumed" counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)" />\n      </when>\n    </choose>\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>`,
@@ -425,7 +426,9 @@
 
       metadataLogging: `<policies>\n  <inbound>\n    <base />\n    <set-variable name="tenant_id" value="@(context.Request.Headers.GetValueOrDefault('x-tenant-id', 'unknown'))" />\n    <set-variable name="agent_name" value="@(context.Request.Headers.GetValueOrDefault('x-agent-name', 'unknown'))" />\n    <set-variable name="model_name" value="@(context.Request.Headers.GetValueOrDefault('x-model', 'gpt-4o'))" />\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n    <set-variable name="responseBody" value="@(context.Response?.Body?.As&lt;string&gt;(preserveContent: true) ?? string.Empty)" />\n    <set-variable name="total_tokens" value="@{\n        var body = (string)context.Variables[&quot;responseBody&quot;];\n        if (string.IsNullOrEmpty(body)) { return &quot;0&quot;; }\n        try {\n            var obj = Newtonsoft.Json.Linq.JObject.Parse(body);\n            return (string)(obj.SelectToken(&quot;usage.total_tokens&quot;) ?? &quot;0&quot;);\n        }\n        catch {\n            return &quot;0&quot;;\n        }\n    }" />\n    <trace source="ai-gateway-demo" severity="information">\n      <message>@("tenant_id=" + (string)context.Variables["tenant_id"] + ";agent_name=" + (string)context.Variables["agent_name"] + ";model=" + (string)context.Variables["model_name"] + ";tokens=" + (string)context.Variables["total_tokens"])</message>\n      <metadata name="tenant_id" value="@((string)context.Variables[&quot;tenant_id&quot;])" />\n      <metadata name="agent_name" value="@((string)context.Variables[&quot;agent_name&quot;])" />\n      <metadata name="model" value="@((string)context.Variables[&quot;model_name&quot;])" />\n      <metadata name="tokens" value="@((string)context.Variables[&quot;total_tokens&quot;])" />\n    </trace>\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>`,
 
-      mcpRateLimit: `<policies>\n  <inbound>\n    <base />\n    <rate-limit-by-key\n      calls="10"\n      renewal-period="60"\n      counter-key="@(context.Subscription.Id)"\n      remaining-calls-variable-name="remainingCalls"\n      remaining-calls-header-name="x-ratelimit-remaining" />\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>`
+      mcpRateLimit: `<policies>\n  <inbound>\n    <base />\n    <rate-limit-by-key\n      calls="10"\n      renewal-period="60"\n      counter-key="@(context.Subscription.Id)"\n      remaining-calls-variable-name="remainingCalls"\n      remaining-calls-header-name="x-ratelimit-remaining" />\n  </inbound>\n  <backend>\n    <base />\n  </backend>\n  <outbound>\n    <base />\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>`,
+
+      localModelRouting: `<policies>\n  <inbound>\n    <base />\n    <choose>\n      <!-- Route to local model when x-model-target is "local" or the subscription name is "Local Model". -->\n      <when condition="@(context.Request.Headers.GetValueOrDefault('x-model-target','') == 'local' || string.Equals(context.Subscription?.Name, 'Local Model', System.StringComparison.OrdinalIgnoreCase))">\n        <!-- Replace YOUR_LOCAL_IP with the hostname or IP address that APIM can reach. Do not use localhost unless APIM runs on the same machine. -->\n        <set-backend-service base-url="http://YOUR_LOCAL_IP:11434/v1/chat/completions" />\n        <set-variable name="backendRegion" value="on-premises" />\n      </when>\n      <otherwise>\n        <!-- Default: Azure Foundry -->\n        <set-backend-service base-url="https://inriver-aigw-foundry-sec.openai.azure.com/openai/deployments/gpt-5.2/chat/completions?api-version=2024-10-21" />\n        <set-variable name="backendRegion" value="swedencentral" />\n      </otherwise>\n    </choose>\n  </inbound>\n  <backend>\n    <base />\n    <forward-request buffer-request-body="true" />\n  </backend>\n  <outbound>\n    <base />\n    <set-header name="x-backend-region" exists-action="override">\n      <value>@((string)context.Variables.GetValueOrDefault('backendRegion', 'unknown'))</value>\n    </set-header>\n  </outbound>\n  <on-error>\n    <base />\n  </on-error>\n</policies>`
     };
 
     const demoData = {
@@ -485,8 +488,22 @@
           { type: "terminal", icon: "💻", title: "Run rapid tool calls and hit 429", do: "Burst >10 tool requests in 60s.", say: "Tool governance works under pressure too.", command: `1..15 | ForEach-Object {\n  Invoke-WebRequest -Method POST -Uri <APIM_MCP_ENDPOINT> -ContentType "application/json" -Body '{"tool":"search_products","arguments":{"query":"laptop"}}' -SkipHttpErrorCheck | Select-Object -ExpandProperty StatusCode\n}`, output: "First ~10 return 200; remaining return 429.", policy: "mcpRateLimit" },
           { type: "talking", icon: "🎤", title: "Recap", do: "Return to slide and land the governance narrative.", say: "Models, tools, and agents now share one enterprise policy plane.", command: "", output: "Clear close: AI Gateway governs the full AI stack.", policy: null }
         ]
+      },
+
+      demo5: {
+        title: "DEMO BONUS — Local Model Routing",
+        duration: "5 min",
+        steps: [
+          { type: "terminal", icon: "💻", title: "Show Ollama running locally", do: "In a local terminal, prove the on-prem model is available before APIM is involved.", say: "This is a real local endpoint, not another Azure deployment.", command: `ollama list`, output: `NAME         ID              SIZE    MODIFIED\nphi4-mini    <model-id>      <size>  <timestamp>`, policy: null },
+          { type: "terminal", icon: "💻", title: "Run local-model.py direct", do: "Keep AI_GATEWAY_URL commented out in demo/.env and call Ollama directly.", say: "The same client can run ungoverned for local validation first.", command: `${envBlock}\n\ncd demo\\clients\npython .\\local-model.py`, output: `🏠 Mode: Local Model (direct)\n🎯 Endpoint: http://localhost:11434/v1\n🧠 Model: phi4-mini\n✅ Response: <one concise sentence>\n📊 Tokens: <prompt> prompt + <completion> completion = <total> total\n🌍 x-ms-region: \x1b[1;32m\x1b[0m`, policy: null },
+          { type: "terminal", icon: "💻", title: "Configure APIM with local-model-routing policy", do: "Apply the routing policy so APIM can steer selected traffic to Ollama instead of Azure Foundry.", say: "Now APIM decides whether the request goes to cloud or on-prem.", command: "# Apply in portal policy editor for Azure OpenAI API", output: "Policy saved successfully with YOUR_LOCAL_IP replaced by a reachable host/IP.", policy: "localModelRouting" },
+          { type: "terminal", icon: "💻", title: "Run local-model.py through AI Gateway", do: "Set AI_GATEWAY_URL and AI_GATEWAY_KEY, then rerun the same client so APIM routes by x-model-target: local.", say: "The app code barely changes, but governance is now back in the path.", command: `${envBlock}\n# Ensure AI_GATEWAY_URL and AI_GATEWAY_KEY are set\ncd demo\\clients\npython .\\local-model.py`, output: `🔒 Mode: AI Gateway → Local Model (governed)\n🎯 Endpoint: <ai-gateway-endpoint>\n🧠 Model: phi4-mini\n✅ Response: <one concise sentence>\n📊 Tokens: <prompt> prompt + <completion> completion = <total> total\n🌍 x-ms-region: \x1b[1;32m<azure-region>\x1b[0m\n🔀 x-backend-region: \x1b[1;36mon-premises\x1b[0m`, policy: null },
+          { type: "talking", icon: "🎤", title: "Talking point", do: "Land the bonus scenario and connect it back to enterprise control.", say: "Even on-prem models get the same governance, observability, and rate limiting.", command: "", output: "Audience sees one control plane across Azure and local AI backends.", policy: null }
+        ]
       }
     };
+
+    const demoOrder = ["demo1", "demo2", "demo3", "demo4", "demo5"];
 
     const checklistItems = [
       "All Foundry endpoints responding",
@@ -505,7 +522,7 @@
       timers: JSON.parse(localStorage.getItem("demoTimers") || "{}")
     };
 
-    ["demo1", "demo2", "demo3", "demo4"].forEach(id => {
+    demoOrder.forEach(id => {
       if (!state.timers[id]) state.timers[id] = { elapsed: 0, lastStart: null };
     });
 
@@ -548,14 +565,14 @@
 
     function switchTimer(newPage) {
       const now = Date.now();
-      ["demo1", "demo2", "demo3", "demo4"].forEach(id => {
+      demoOrder.forEach(id => {
         const t = state.timers[id];
         if (t.lastStart && id !== newPage) {
           t.elapsed += now - t.lastStart;
           t.lastStart = null;
         }
       });
-      if (["demo1", "demo2", "demo3", "demo4"].includes(newPage)) {
+      if (demoOrder.includes(newPage)) {
         const t = state.timers[newPage];
         if (!t.lastStart) t.lastStart = now;
       }
@@ -585,10 +602,9 @@
         next.scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
-      const order = ["demo1", "demo2", "demo3", "demo4"];
-      const currentIx = order.indexOf(demoId);
-      if (currentIx >= 0 && currentIx < order.length - 1) {
-        selectPage(order[currentIx + 1]);
+      const currentIx = demoOrder.indexOf(demoId);
+      if (currentIx >= 0 && currentIx < demoOrder.length - 1) {
+        selectPage(demoOrder[currentIx + 1]);
       }
     }
 
@@ -604,12 +620,12 @@
     }
 
     function renderSidebarMeta() {
-      const allTotal = ["demo1", "demo2", "demo3", "demo4"].reduce((a, id) => a + demoData[id].steps.length, 0);
-      const allDone = ["demo1", "demo2", "demo3", "demo4"].reduce((a, id) => a + doneCount(id), 0);
+      const allTotal = demoOrder.reduce((a, id) => a + demoData[id].steps.length, 0);
+      const allDone = demoOrder.reduce((a, id) => a + doneCount(id), 0);
       document.getElementById("overallText").textContent = `${allDone} of ${allTotal} steps done`;
       document.getElementById("overallFill").style.width = `${Math.round((allDone / allTotal) * 100)}%`;
 
-      ["demo1", "demo2", "demo3", "demo4"].forEach(id => {
+      demoOrder.forEach(id => {
         const done = doneCount(id);
         const total = demoData[id].steps.length;
         document.getElementById(`meta-${id}`).textContent = `${done}/${total} done · ${fmt(timerValue(id))}`;
@@ -722,9 +738,8 @@
     }
 
     function skipToNextDemo() {
-      const order = ["demo1", "demo2", "demo3", "demo4"];
-      const ix = order.indexOf(currentPage);
-      const next = ix >= 0 && ix < order.length - 1 ? order[ix + 1] : order[order.length - 1];
+      const ix = demoOrder.indexOf(currentPage);
+      const next = ix >= 0 && ix < demoOrder.length - 1 ? demoOrder[ix + 1] : demoOrder[demoOrder.length - 1];
       toggleEmergency(false);
       selectPage(next);
     }
@@ -745,7 +760,7 @@
     });
 
     setInterval(() => {
-      if (["demo1", "demo2", "demo3", "demo4"].includes(currentPage)) {
+      if (demoOrder.includes(currentPage)) {
         renderSidebarMeta();
         const timer = document.querySelector(".header .timer");
         if (timer) timer.textContent = `Elapsed: ${fmt(timerValue(currentPage))} / ${demoData[currentPage].duration}`;
