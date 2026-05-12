@@ -60,24 +60,39 @@
     </backend>
     <outbound>
         <base />
-        <set-variable name="creditBody" value="@{
+        <set-variable name="tokensUsed" value="@{
             try {
-                return ((IResponse)context.Variables[&quot;creditCheck&quot;]).Body.As&lt;string&gt;(preserveContent: true);
+                var body = context.Response.Body.As<JObject>(preserveContent: true);
+                return body["usage"]["total_tokens"].ToString();
             } catch {
-                return &quot;{}&quot;;
+                return "50";
             }
         }" />
+        <send-request mode="new" response-variable-name="consumeResponse" timeout="5" ignore-error="true">
+            <set-url>https://inriver-aigw-credits.happystone-8616c4eb.swedencentral.azurecontainerapps.io/api/consume</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@("{\"tenantId\": \"" + (string)context.Variables["tenantId"] + "\", \"tokens\": " + (string)context.Variables["tokensUsed"] + "}")</set-body>
+        </send-request>
         <set-header name="x-tenant-id" exists-action="override">
             <value>@((string)context.Variables["tenantId"])</value>
+        </set-header>
+        <set-header name="x-tokens-consumed" exists-action="override">
+            <value>@((string)context.Variables["tokensUsed"])</value>
         </set-header>
         <set-header name="x-remaining-credits" exists-action="override">
             <value>@{
                 try {
-                    var obj = Newtonsoft.Json.Linq.JObject.Parse((string)context.Variables["creditBody"]);
-                    return (string)obj["remaining"] ?? "unknown";
-                } catch {
-                    return "unknown";
-                }
+                    var resp = ((IResponse)context.Variables["consumeResponse"]);
+                    if (resp.StatusCode == 200) {
+                        var body = resp.Body.As&lt;string&gt;();
+                        var obj = Newtonsoft.Json.Linq.JObject.Parse(body);
+                        return obj["remaining"].ToString();
+                    }
+                } catch {}
+                return "unknown";
             }</value>
         </set-header>
     </outbound>
