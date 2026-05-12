@@ -1,0 +1,51 @@
+<policies>
+    <inbound>
+        <base />
+        <set-variable name="productName" value="@((context.Product?.Name ?? &quot;Developer&quot;).Trim())" />
+        <set-variable name="tier" value="@((context.Product?.Name ?? &quot;Developer&quot;).ToLowerInvariant())" />
+
+        <choose>
+            <when condition="@(((string)context.Variables[&quot;tier&quot;]) == &quot;premium&quot;)">
+                <set-variable name="targetModel" value="gpt-5.2" />
+                <set-backend-service backend-id="OpenAI-Balanced" />
+                <rewrite-uri template="/openai/deployments/gpt-5.2/chat/completions?api-version=2024-10-21" copy-unmatched-params="false" />
+                <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+            </when>
+            <when condition="@(((string)context.Variables[&quot;tier&quot;]) == &quot;economy&quot;)">
+                <set-variable name="targetModel" value="gpt-4.1" />
+                <set-backend-service backend-id="OpenAI-Balanced" />
+                <rewrite-uri template="/openai/deployments/gpt-4.1/chat/completions?api-version=2024-10-21" copy-unmatched-params="false" />
+                <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+            </when>
+            <otherwise>
+                <set-variable name="tier" value="developer" />
+                <set-variable name="targetModel" value="phi4-mini" />
+                <set-backend-service backend-id="localollama-openai-endpoint" />
+                <rewrite-uri template="/v1/chat/completions" copy-unmatched-params="false" />
+            </otherwise>
+        </choose>
+
+        <set-variable name="requestBody" value="@(context.Request.Body?.As&lt;string&gt;(preserveContent: true) ?? &quot;{}&quot;)" />
+        <set-body>@{
+            var body = (string)context.Variables["requestBody"];
+            var model = (string)context.Variables["targetModel"];
+            var obj = string.IsNullOrWhiteSpace(body)
+                ? new Newtonsoft.Json.Linq.JObject()
+                : Newtonsoft.Json.Linq.JObject.Parse(body);
+            obj["model"] = model;
+            return obj.ToString(Newtonsoft.Json.Formatting.None);
+        }</set-body>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-header name="x-model-tier" exists-action="override">
+            <value>@((string)context.Variables["tier"])</value>
+        </set-header>
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

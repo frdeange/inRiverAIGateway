@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI
 
 
-API_VERSION = "2024-10-21"
+API_VERSION = os.getenv("API_VERSION", "2024-10-21")
 
 
 def load_tiers() -> list[tuple[str, str, str]]:

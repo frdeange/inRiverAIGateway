@@ -84,7 +84,7 @@ def main() -> int:
         print("Set AI_GATEWAY_URL in src/.env")
         return 1
 
-    endpoint = gateway_base.rsplit("/", 1)[0] + "/noisyneighbor2"
+    endpoint = gateway_base.rsplit("/", 1)[0] + "/noisy-neighbor2"
     model = os.getenv("MODEL_DEPLOYMENT", "gpt-5.2")
 
     key_a = os.getenv("NOISY_CUSTOMER_A_KEY", "").strip()

@@ -7,15 +7,12 @@ param(
 
     [string]$ResourceGroupName = "rg-inRiverAIGW",
 
-    [ValidateSet("token-rate-limit", "content-safety", "load-balancer", "failover-circuit-breaker", "semantic-cache", "metadata-logging")]
-    [string]$PolicyName = "token-rate-limit",
+    [ValidateSet("load-balancer-pool", "smart-routing", "rate-limit", "token-quota", "enterprise-jwt-credits")]
+    [string]$PolicyName = "load-balancer-pool",
 
     [string]$OperationId,
 
     [string]$PoliciesDirectory = (Join-Path $PSScriptRoot "apim-policies"),
-    [string]$BackendSwedenId = "foundry-sweden-central",
-    [string]$BackendFranceId = "foundry-france-central",
-    [string]$BackendSpainId = "foundry-spain-central",
     [string]$ModelDeployment = "gpt-5.2"
 )
 
@@ -31,9 +28,6 @@ $frcUrl = "https://inriver-aigw-foundry-frc.openai.azure.com/openai/deployments/
 $espUrl = "https://inriver-aigw-foundry-esp.openai.azure.com/openai/deployments/$ModelDeployment/chat/completions?api-version=2024-10-21"
 
 $xmlContent = Get-Content -Path $policyFile -Raw
-$xmlContent = $xmlContent.Replace("__BACKEND_SWEDEN_ID__", $BackendSwedenId)
-$xmlContent = $xmlContent.Replace("__BACKEND_FRANCE_ID__", $BackendFranceId)
-$xmlContent = $xmlContent.Replace("__BACKEND_SPAIN_ID__", $BackendSpainId)
 $xmlContent = $xmlContent.Replace("https://inriver-aigw-foundry-sec.openai.azure.com/openai/deployments/gpt-5.2/chat/completions?api-version=2024-10-21", $secUrl)
 $xmlContent = $xmlContent.Replace("https://inriver-aigw-foundry-frc.openai.azure.com/openai/deployments/gpt-5.2/chat/completions?api-version=2024-10-21", $frcUrl)
 $xmlContent = $xmlContent.Replace("https://inriver-aigw-foundry-esp.openai.azure.com/openai/deployments/gpt-5.2/chat/completions?api-version=2024-10-21", $espUrl)

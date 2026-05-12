@@ -1,318 +1,187 @@
 # 🤖 inRiver AI Gateway Demo Kit
 
-> **Enterprise AI orchestration with multi-regional Azure AI Foundry, geographic load balancing, and intelligent product routing** — Built for the inRiver Partner Session
+> **Current demo set:** Geographic load balancing, smart product routing, noisy-neighbor protection, and enterprise JWT + credit checks.
 
 [![Azure Samples](https://img.shields.io/badge/Azure-Samples-0078D4?style=flat-square&logo=microsoft-azure)](https://github.com/Azure-Samples/AI-Gateway)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776ab?style=flat-square&logo=python)](https://www.python.org/)
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.0+-5391FE?style=flat-square&logo=powershell)](https://learn.microsoft.com/en-us/powershell/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 ---
 
-## 📋 Table of Contents
+## 📁 Current Demo Structure
 
-- [🎯 What is This?](#-what-is-this)
-- [🏗️ Architecture Overview](#-architecture-overview)
-- [📊 Demo Structure](#-demo-structure)
-- [📁 Project Layout](#-project-layout)
-- [⚡ Quick Start](#-quick-start)
-- [🔧 Configuration](#-configuration)
-- [📚 Reference Links](#-reference-links)
-
----
-
-## 🎯 What is This?
-
-**inRiver AI Gateway** is a **demonstration kit** showcasing how enterprises can orchestrate AI workloads across Azure using:
-
-- ✅ **Multi-regional deployment** — 3 Azure regions (Sweden, France, Spain) for resilience & compliance
-- ✅ **Intelligent routing** — Azure API Management policies for geographic load balancing & failover
-- ✅ **Azure AI Foundry** — Centralized AI model deployment & governance
-- ✅ **Smart product routing** — LLM-powered intelligent request classification
-- ✅ **MCP server integration** — FastMCP tool server deployed to Azure Container Apps
-- ✅ **Production telemetry** — Application Insights monitoring & governance
-
-Built as a **lab environment** for Microsoft partners exploring advanced AI deployment patterns.
-
----
-
-## 🏗️ Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Applications                      │
-│  (demo1: good-app, rogue-app, load-test)                   │
-│  (demo2: smart-app, smart-load-test)                       │
-└───────────────────────┬─────────────────────────────────────┘
-                        │ Azure Entra ID Auth
-                        ▼
-        ┌───────────────────────────────────┐
-        │  Azure API Management (APIM)      │
-        │  ├─ Load Balancer Policy          │
-        │  ├─ Failover Circuit Breaker      │
-        │  └─ Rate Limiting & Content Safety│
-        └───────────────────────────────────┘
-                        │
-        ┌───────────────┼────────────────┬────────────────┐
-        │               │                │                │
-        ▼               ▼                ▼                ▼
-    ┌─────────┐   ┌─────────┐      ┌─────────┐     ┌──────────┐
-    │ 🇸🇪 Sweden  │ 🇫🇷 France  │      │ 🇪🇸 Spain   │     │ 📊 Logging   │
-    │ Central │   │ Central │      │ Central  │     │ & Telemetry │
-    │ (50%)   │   │ (30%)   │      │ (20%)    │     │ Application  │
-    │         │   │         │      │          │     │ Insights     │
-    │ Azure AI│   │ Azure AI│      │ Azure AI │     └──────────┘
-    │ Foundry │   │ Foundry │      │ Foundry  │
-    │ gpt-5.2 │   │ gpt-5.2 │      │ gpt-5.2  │
-    └─────────┘   └─────────┘      └─────────┘
-                        │
-                        ▼
-            ┌─────────────────────────┐
-            │ Azure Container Apps    │
-            │ (MCP Server - agentic)  │
-            └─────────────────────────┘
-                        │
-                        ▼
-            ┌─────────────────────────┐
-            │ Local Model (Ollama)    │
-            │ (Optional fallback)     │
-            └─────────────────────────┘
-```
-
-### Regional Deployment
-
-| 🌍 Region | 📍 Azure Region | 🎯 Weight | 📦 Deployment | 🔐 Auth |
-|-----------|-----------------|-----------|---------------|---------|
-| 🇸🇪 Sweden | `Sweden Central` | 50% | `gpt-5.2` | Entra ID |
-| 🇫🇷 France | `France Central` | 30% | `gpt-5.2` | Entra ID |
-| 🇪🇸 Spain | `Spain Central` | 20% | `gpt-5.2` | Entra ID |
-
----
-
-## 📊 Demo Structure
-
-### 🎯 **Demo 1: Geographic Load Balancing & Failover**
-
-Demonstrates enterprise AI workload distribution across regions with intelligent failover.
-
-**Included scenarios:**
-- ✅ `good-app.py` — Well-behaved application with proper error handling
-- ✅ `rogue-app.py` — Malformed requests to trigger circuit breaker
-- ✅ `load-test.py` — Concurrent requests to observe load distribution
-
-**What you'll see:**
-- Geographic routing based on configured weights
-- Automatic failover when regions become unavailable
-- Rate limiting & policy enforcement via APIM
-- Telemetry captured in Application Insights
-
-### 🧠 **Demo 2: Smart Product Routing**
-
-Demonstrates intelligent LLM-powered request classification and routing.
-
-**Included scenarios:**
-- ✅ `smart-app.py` — Production-ready routing engine
-- ✅ `smart-load-test.py` — Load testing with semantic request classification
-
-**What you'll see:**
-- Requests classified by semantic intent
-- Automatic routing to appropriate regional endpoints
-- Confidence scoring & fallback handling
-- Full request/response telemetry
-
----
-
-## 📁 Project Layout
-
-```
-inRiverAIGateway/
-├── README.md                           ← 🎯 You are here!
-├── src/
-│   ├── README.md                       ← 📖 Detailed demo guide
-│   ├── .env                            ← 🔐 Environment config (create from template)
-│   ├── requirements.txt                ← 📦 Python dependencies
-│   │
-│   ├── demo1/                          ← 🎯 Demo: Load Balancing & Failover
-│   │   ├── good-app.py                 │  Standard client, proper error handling
-│   │   ├── rogue-app.py                │  Malformed requests → circuit breaker
-│   │   └── load-test.py                │  Concurrent load distribution test
-│   │
-│   ├── demo2/                          ← 🧠 Demo: Smart Routing
-│   │   ├── smart-app.py                │  LLM-powered request classifier
-│   │   └── smart-load-test.py          │  Semantic load testing
-│   │
-│   ├── mcp-server/                     ← 🤖 Model Context Protocol Server
-│   │   ├── server.py                   │  FastMCP application server
-│   │   ├── Dockerfile                  │  Container image definition
-│   │   ├── requirements.txt            │  MCP dependencies
-│   │   └── deploy-aca.ps1              │  Deploy to Azure Container Apps
-│   │
-│   ├── apim-policies/                  ← 📋 Azure APIM Policy Definitions
-│   │   ├── load-balancer.xml           │  Geographic load balancing policy
-│   │   └── failover-circuit-breaker.xml│ Failover with circuit breaker
-│   │
-│   ├── arm-templates/                  ← 🏗️ Infrastructure as Code
-│   │   ├── foundry-*.json              │  Azure AI Foundry deployment
-│   │   └── apim-*.json                 │  API Management configuration
-│   │
-│   ├── provision-resources.ps1         ← 🚀 Deploy all regional Foundry stacks
-│   └── inject-policies.ps1             ← 💉 Apply APIM policies
-│
-└── .env.example                        ← 📝 Environment template
-
+```text
+src/
+├── demo1/  — Geographic Load Balancing
+│   ├── good-app.py
+│   ├── rogue-app.py
+│   ├── load-test.py
+│   └── local-model.py
+├── demo2/  — Smart Product-Based Routing
+│   ├── smart-app.py
+│   └── smart-load-test.py
+├── demo3/  — Noisy Neighbor Protection
+│   ├── rate-limit-demo.py
+│   ├── quota-demo.py
+│   └── noisy-neighbor.py
+├── demo4/  — Enterprise JWT + Credit Service
+│   ├── enterprise-app.py
+│   ├── generate-token.py
+│   └── credit-service/
+└── apim-policies/
+    ├── load-balancer-pool.xml
+    ├── smart-routing.xml
+    ├── rate-limit.xml
+    ├── token-quota.xml
+    └── enterprise-jwt-credits.xml
 ```
 
 ---
 
-## ⚡ Quick Start
+## ☁️ Azure Resources Needed
 
-### 🔑 Prerequisites
+- 🏛️ Azure API Management instance (with APIs `/ai`, `/smartai`, `/noisyneighbor`, `/noisy-neighbor2`, `/inrivermock`)
+- 🤖 Azure OpenAI / Foundry backends (regional + balanced backend pool `OpenAI-Balanced`)
+- 🐳 Azure Container Apps credit service (Demo 4)
+- 🔐 Managed identity enabled on APIM for OpenAI calls
+- 📊 Application Insights (optional but recommended for live demo telemetry)
 
-Before you begin, ensure you have:
+---
 
-- ✅ **Python 3.11+** ([download](https://www.python.org/downloads/))
-- ✅ **Azure subscription** with permissions to create resources
-- ✅ **Azure CLI** (`az` command)
-- ✅ **PowerShell 7.0+** ([download](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell))
-- ✅ **Git** for version control
-- ⭐ **Ollama** (optional) for local model fallback — [download](https://ollama.ai)
+## ⚙️ Environment Variables (`src/.env`)
 
-### 📦 Installation (5 minutes)
+Copy from template:
 
 ```powershell
-# 1️⃣ Clone the repository
-git clone https://github.com/Azure-Samples/inRiverAIGateway.git
-cd inRiverAIGateway
-
-# 2️⃣ Create & configure environment
 cd src
 Copy-Item .env.example .env
-# ✏️ Edit .env with your Azure resource names and endpoints
-code .env
-
-# 3️⃣ Install Python dependencies
-pip install -r .\requirements.txt
-
-# 4️⃣ Authenticate to Azure
-az login
 ```
 
-### 🚀 Running the Demos
+> Use `src/.env.example` for variable names and placeholder values.
 
-<details open>
-<summary><b>✨ Demo 1: Load Balancing & Failover</b></summary>
+| Variable | Description |
+|---|---|
+| `FOUNDRY_SEC_ENDPOINT`, `FOUNDRY_FRC_ENDPOINT`, `FOUNDRY_ESP_ENDPOINT` | Regional OpenAI endpoints used by direct mode and validation scripts |
+| `MODEL_DEPLOYMENT` | Default cloud model deployment (usually `gpt-5.2`) |
+| `API_VERSION` | OpenAI API version used by clients |
+| `AI_GATEWAY_URL` | APIM URL for active demo (`.../ai`, then scripts derive per-demo paths) |
+| `AI_GATEWAY_KEY` | APIM subscription key for gateway calls |
+| `LOCAL_MODEL_URL`, `LOCAL_MODEL_NAME` | Ollama endpoint/model for bonus local-model demo |
+| `REQUESTS_PER_TIER` | Requests per tier for Demo 2 load test |
+| `SMARTAI_*` | Product-tier keys/descriptions for Premium/Economy/Developer |
+| `NOISY_CUSTOMER_*` | Separate subscription keys/names for noisy-neighbor demos |
+| `JWT_SECRET` | Shared HS256 secret for Demo 4 JWT generation/validation |
+| `CREDIT_SERVICE_URL` | External credit-check service base URL |
+| `MCP_SERVER_URL` | Optional MCP endpoint reference |
+| `APPINSIGHTS_NAME`, `RESOURCE_GROUP`, `APIM_NAME` | Infra and monitoring helpers |
+
+---
+
+## 🎬 Demo 1 — Geographic Load Balancing (`/ai`)
+
+**What it demonstrates:** APIM sends traffic to a geographic backend pool with managed identity auth. You can show normal use, burst pressure, and regional distribution.
+
+- **APIM API path:** `/ai`
+- **APIM policy:** `src/apim-policies/load-balancer-pool.xml`
+
+Run:
 
 ```powershell
 cd src
-
-# 📊 Standard application
 python .\demo1\good-app.py
-
-# 🔴 Trigger circuit breaker (rogue requests)
 python .\demo1\rogue-app.py
-
-# 📈 Load test with distribution metrics
 python .\demo1\load-test.py
 ```
 
-**Expected output:**
-- Requests distributed: Sweden 50%, France 30%, Spain 20%
-- Circuit breaker triggered after 5 consecutive failures
-- Automatic failover to next region
-- Full telemetry in Application Insights
+Expected output: `x-ms-region`/`x-backend-region` headers and 429s under burst load.
 
-</details>
+---
 
-<details>
-<summary><b>🧠 Demo 2: Smart Routing</b></summary>
+## 🎬 Demo 2 — Smart Product-Based Routing (`/smartai`)
+
+**What it demonstrates:** Product-tier routing and model override. Premium/Economy route to cloud balanced pool with different models; Developer routes to local Ollama.
+
+- **APIM API path:** `/smartai`
+- **APIM policy:** `src/apim-policies/smart-routing.xml`
+
+Run:
 
 ```powershell
 cd src
-
-# 🎯 Intelligent routing engine
 python .\demo2\smart-app.py
-
-# 📈 Load test with semantic classification
 python .\demo2\smart-load-test.py
 ```
 
-**Expected output:**
-- Requests classified by intent (product search, info retrieval, etc.)
-- Confidence scoring for each classification
-- Optimized routing based on semantic categories
-- Detailed telemetry with classification metrics
-
-</details>
+Expected output: `x-model-tier` and different `response.model` values (`gpt-5.2`, `gpt-4.1`, `phi4-mini`).
 
 ---
 
-## 🔧 Configuration
+## 🎬 Demo 3a — Noisy Neighbor Rate Limit (`/noisyneighbor`)
 
-### 📝 Environment Variables (`.env`)
+**What it demonstrates:** Per-subscription fairness with calls/minute limits.
 
-| Variable | Example | Purpose |
-|----------|---------|---------|
-| `APIM_NAME` | `inriver-aigw-apim` | Azure API Management instance |
-| `APIM_URL` | `https://inriver-aigw-apim.azure-api.net` | APIM endpoint URL |
-| `FOUNDRY_SWEDEN_ENDPOINT` | `https://inriver-aigw-foundry-sec.openai.azure.com/` | Sweden Foundry endpoint |
-| `FOUNDRY_FRANCE_ENDPOINT` | `https://inriver-aigw-foundry-frc.openai.azure.com/` | France Foundry endpoint |
-| `FOUNDRY_SPAIN_ENDPOINT` | `https://inriver-aigw-foundry-esp.openai.azure.com/` | Spain Foundry endpoint |
-| `AZURE_DEPLOYMENT_NAME` | `gpt-5.2` | Model deployment identifier |
-| `AZURE_TENANT_ID` | `{your-tenant-id}` | Azure Entra ID tenant |
-| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama (optional) |
+- **APIM API path:** `/noisyneighbor`
+- **APIM policy:** `src/apim-policies/rate-limit.xml`
 
-### 💉 Injecting APIM Policies
+Run:
 
 ```powershell
 cd src
-
-# Apply load balancing policy (Sweden 50%, France 30%, Spain 20%)
-.\inject-policies.ps1 -ApimName "inriver-aigw-apim" `
-                       -ApiId "ai-gateway-api" `
-                       -PolicyName "load-balancer"
-
-# Apply circuit breaker & failover policy
-.\inject-policies.ps1 -ApimName "inriver-aigw-apim" `
-                       -ApiId "ai-gateway-api" `
-                       -PolicyName "failover-circuit-breaker"
+python .\demo3\rate-limit-demo.py
 ```
 
-### 🚀 Provisioning Regional Resources
+Expected output: first calls succeed, then `429 THROTTLED` for over-limit customer.
+
+---
+
+## 🎬 Demo 3b — Monthly Token Quota (`/noisy-neighbor2`)
+
+**What it demonstrates:** Per-subscription monthly token budget enforcement using LLM token-limit policy.
+
+- **APIM API path:** `/noisy-neighbor2`
+- **APIM policy:** `src/apim-policies/token-quota.xml`
+
+Run:
 
 ```powershell
 cd src
-
-# Deploy all 3 regional Azure AI Foundry stacks with ARM templates
-.\provision-resources.ps1 -Environment "production" `
-                          -Regions @("Sweden Central", "France Central", "Spain Central")
+python .\demo3\quota-demo.py
 ```
 
----
-
-## 📚 Reference Links
-
-### 🔗 Official Documentation
-
-- **[Azure-Samples/AI-Gateway](https://github.com/Azure-Samples/AI-Gateway)** — Comprehensive AI Gateway lab & best practices
-- **[Azure API Management](https://learn.microsoft.com/en-us/azure/api-management/)** — Enterprise API governance & policies
-- **[Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/)** — Model deployment & management
-- **[Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/)** — Serverless container hosting
-- **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)** — Tool integration standard for LLMs
-
-### 📖 For More Details
-
-👉 **See [`src/README.md`](./src/README.md)** for detailed demo instructions, troubleshooting, and advanced configuration.
+Expected output: quota headers decrease, then `403 QUOTA EXCEEDED` when budget is exhausted.
 
 ---
 
-## 🤝 Contributing
+## 🎬 Demo 4 — Enterprise JWT + Credit Service (`/inrivermock`)
 
-This is a **lab kit for educational purposes**. Contributions, issues, and feature requests are welcome!
+**What it demonstrates:** Enterprise inbound controls: JWT validation, tenant extraction, and external credit check before forwarding to LLM.
 
-## 📄 License
+- **APIM API path:** `/inrivermock`
+- **APIM policy:** `src/apim-policies/enterprise-jwt-credits.xml`
 
-Licensed under the MIT License — see the LICENSE file for details.
+Run:
+
+```powershell
+cd src
+python .\demo4\generate-token.py --tenant tenant-adidas --user user1@adidas.com
+python .\demo4\enterprise-app.py
+```
+
+Expected output: approved tenant gets model response + credit headers; low/no-credit tenant gets 403.
 
 ---
 
-**Built for inRiver Partner Session | Microsoft Azure Demo Kit** 🎯
+## ➕ Bonus — Local Model via APIM Passthrough (`/ollama`)
+
+Run:
+
+```powershell
+cd src
+python .\demo1\local-model.py
+```
+
+Expected output: direct local mode or governed APIM mode depending on `AI_GATEWAY_URL` + `AI_GATEWAY_KEY`.
+
+---
+
+📖 Detailed presenter guide: [`src/README.md`](./src/README.md)
