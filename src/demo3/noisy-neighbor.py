@@ -30,18 +30,22 @@ def send_request(client, model, index, customer_name):
         )
         response = raw.parse()
         remaining_calls = raw.headers.get("x-remaining-calls", "?")
+        remaining_tokens = raw.headers.get("x-remaining-tokens", "?")
+        tokens_consumed = raw.headers.get("x-tokens-consumed", "?")
         region = raw.headers.get("x-ms-region", "?")
         return {
             "status": 200,
             "remaining_calls": remaining_calls,
+            "remaining_tokens": remaining_tokens,
+            "tokens_consumed": tokens_consumed,
             "region": region,
             "tokens": response.usage.total_tokens,
         }
     except (RateLimitError, APIStatusError) as exc:
         status = 429 if isinstance(exc, RateLimitError) else int(exc.status_code)
-        return {"status": status, "remaining_calls": "0", "region": "N/A", "tokens": 0}
+        return {"status": status, "remaining_calls": "0", "remaining_tokens": "0", "tokens_consumed": "0", "region": "N/A", "tokens": 0}
     except Exception as exc:
-        return {"status": 0, "remaining_calls": "?", "region": "N/A", "tokens": 0}
+        return {"status": 0, "remaining_calls": "?", "remaining_tokens": "?", "tokens_consumed": "?", "region": "N/A", "tokens": 0}
 
 
 def run_customer(name, client, model, num_requests, delay=0.3):
@@ -81,17 +85,23 @@ def print_result(name, i, result):
         label = f"\x1b[1;32m200 OK\x1b[0m"
     elif status == 429:
         label = f"\x1b[1;31m429 THROTTLED\x1b[0m"
+    elif status == 403:
+        label = f"\x1b[1;35m403 QUOTA EXCEEDED\x1b[0m"
     else:
         label = f"\x1b[1;33m{status} ERROR\x1b[0m"
 
-    remaining = result.get("remaining_calls", result.get("remaining", "?"))
+    remaining = result.get("remaining_calls", "?")
+    remaining_tok = result.get("remaining_tokens", "?")
+    consumed = result.get("tokens_consumed", "?")
     try:
         remaining = str(max(0, int(remaining)))
     except (ValueError, TypeError):
         pass
     print(
         f"   [{name}] #{i:02d} → {label} | "
-        f"remaining-calls: {remaining} | "
+        f"calls-left: {remaining} | "
+        f"tokens-left: {remaining_tok} | "
+        f"consumed: {consumed} | "
         f"🌍 {result['region']}"
     )
 
@@ -121,7 +131,7 @@ def main() -> int:
 
     print("🔒 Noisy Neighbor Protection Demo")
     print(f"🎯 Endpoint: {noisy_endpoint}")
-    print(f"📊 Rate limit: 3 calls/min per customer (subscription)")
+    print(f"📊 Limits: 3 calls/min + 200 tokens/min per customer")
     print("=" * 70)
 
     # Phase 1: Customer A alone — works fine
@@ -130,7 +140,9 @@ def main() -> int:
     results_a1 = run_customer(name_a, client_a, model, 3, delay=0.5)
 
     ok_a1 = sum(1 for r in results_a1 if r["status"] == 200)
-    print(f"\n   ✅ {name_a}: {ok_a1}/3 OK\n")
+    throttled_a1 = sum(1 for r in results_a1 if r["status"] == 429)
+    quota_a1 = sum(1 for r in results_a1 if r["status"] == 403)
+    print(f"\n   ✅ {ok_a1}/3 OK | 🚫 {throttled_a1} throttled | 🛑 {quota_a1} quota exceeded\n")
 
     # Phase 2: Customer B floods — gets throttled
     print(f"\n📋 Phase 2: {name_b} batch flood (12 requests, ALL PARALLEL)")
@@ -139,7 +151,8 @@ def main() -> int:
 
     ok_b = sum(1 for r in results_b if r["status"] == 200)
     throttled_b = sum(1 for r in results_b if r["status"] == 429)
-    print(f"\n   ✅ {name_b}: {ok_b}/12 OK | 🚫 {throttled_b}/12 THROTTLED\n")
+    quota_b = sum(1 for r in results_b if r["status"] == 403)
+    print(f"\n   ✅ {ok_b}/12 OK | 🚫 {throttled_b} throttled | 🛑 {quota_b} quota exceeded\n")
 
     # Phase 3: Customer A again — still works despite B being throttled
     print(f"📋 Phase 3: {name_a} again (3 requests) — unaffected by B's flood?")
@@ -148,25 +161,17 @@ def main() -> int:
 
     ok_a2 = sum(1 for r in results_a2 if r["status"] == 200)
     throttled_a2 = sum(1 for r in results_a2 if r["status"] == 429)
+    quota_a2 = sum(1 for r in results_a2 if r["status"] == 403)
 
     print("\n" + "=" * 70)
     print("📊 RESULTS SUMMARY")
     print("=" * 70)
-    print(f"   {name_a} (Phase 1): {ok_a1}/3 OK")
-    print(f"   {name_b} (flood):   {ok_b}/12 OK | 🚫 {throttled_b}/12 THROTTLED")
-    print(f"   {name_a} (Phase 3): {ok_a2}/3 OK | 🚫 {throttled_a2}/3 THROTTLED")
+    print(f"   {name_a} (Phase 1): ✅ {ok_a1}/3 OK | 🚫 {throttled_a1} throttled | 🛑 {quota_a1} quota exceeded")
+    print(f"   {name_b} (flood):   ✅ {ok_b}/12 OK | 🚫 {throttled_b} throttled | 🛑 {quota_b} quota exceeded")
+    print(f"   {name_a} (Phase 3): ✅ {ok_a2}/3 OK | 🚫 {throttled_a2} throttled | 🛑 {quota_a2} quota exceeded")
     print()
-
-    if ok_a2 > 0 and throttled_b > 0:
-        print("   💡 \x1b[1;32mNOISY NEIGHBOR PROTECTION WORKS!\x1b[0m")
-        print("   Customer B's batch flood was throttled,")
-        print("   but Customer A continued operating normally.")
-    elif throttled_a2 > 0:
-        print("   ⚠️  Customer A was also throttled — they may have hit their own cap.")
-        print("   Try increasing the token cap or waiting a minute for the counter to reset.")
-    print()
-    print("   🔑 Key insight: counter-key=subscription.Id means each customer")
-    print("   has an INDEPENDENT token budget. One can't starve the other.")
+    print("   📖 429 = rate limit (resets every minute)")
+    print("   📖 403 = monthly quota exhausted (resets next month)")
 
     return 0
 
