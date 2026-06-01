@@ -1,0 +1,17 @@
+<policies>
+  <inbound>
+    <base />
+    <set-backend-service backend-id="OpenAI-Balanced" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+    <rate-limit-by-key calls="3" renewal-period="60" counter-key="@(context.Subscription.Id)" remaining-calls-header-name="x-remaining-calls" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

@@ -1,0 +1,76 @@
+<policies>
+  <inbound>
+    <base />
+    <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Invalid or missing JWT &#xA;token" require-scheme="Bearer">
+      <issuer-signing-keys>
+        <key>{{jwt-signing-key}}</key>
+      </issuer-signing-keys>
+      <audiences>
+        <audience>ai-gateway</audience>
+      </audiences>
+      <issuers>
+        <issuer>inriver-auth</issuer>
+      </issuers>
+      <required-claims>
+        <claim name="tid" match="any" />
+      </required-claims>
+    </validate-jwt>
+    <set-variable name="tenantId" value="@{&#xA;             var auth = context.Request.Headers.GetValueOrDefault(&quot;Authorization&quot;,&quot;&quot;);&#xA;             if (string.IsNullOrEmpty(auth)) { return &quot;unknown&quot;; }&#xA;             var token = auth.Replace(&quot;Bearer &quot;, &quot;&quot;);&#xA;             var parts = token.Split('.');&#xA;             if (parts.Length != 3) { return &quot;unknown&quot;; }&#xA;             var payload = parts[1];&#xA;             payload = payload.Replace('-', '+').Replace('_', '/');&#xA;             if (payload.Length % 4 == 2) { payload += &quot;==&quot;; }&#xA;             if (payload.Length % 4 == 3) { payload += &quot;=&quot;; }&#xA;             var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));&#xA;             var obj = Newtonsoft.Json.Linq.JObject.Parse(json);&#xA;             return (string)obj[&quot;tid&quot;] ?? &quot;unknown&quot;;&#xA;         }" />
+    <send-request mode="new" response-variable-name="creditCheck" timeout="5" ignore-error="false">
+      <set-url>@("https://inriver-aigw-credits.happystone-8616c4eb.swedencentral.azurecontainerapps.io/api/check?tenantId=" + 
+(string)context.Variables["tenantId"])</set-url>
+      <set-method>GET</set-method>
+    </send-request>
+    <set-variable name="creditBody" value="@(((IResponse)context.Variables[&quot;creditCheck&quot;]).Body.As&amp;lt;string&amp;gt;())" />
+    <choose>
+      <when condition="@(((IResponse)context.Variables[&quot;creditCheck&quot;]).StatusCode != 200)">
+        <return-response>
+          <set-status code="403" reason="Credit quota exceeded" />
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-body>@("{\"error\": \"Monthly AI credit quota exceeded for tenant " + (string)context.Variables["tenantId"] + "\"}")</set-body>
+        </return-response>
+      </when>
+    </choose>
+    <set-backend-service backend-id="OpenAI-Balanced" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+    <set-variable name="tokensUsed" value="@{&#xA;         try {&#xA;             var body = context.Response.Body.As&lt;JObject&gt;(preserveContent: true);&#xA;             return body[&quot;usage&quot;][&quot;total_tokens&quot;].ToString();&#xA;         } catch {&#xA;             return &quot;50&quot;;&#xA;         }&#xA;     }" />
+    <send-request mode="new" response-variable-name="consumeResponse" timeout="5" ignore-error="true">
+      <set-url>https://inriver-aigw-credits.happystone-8616c4eb.swedencentral.azurecontainerapps.io/api/consume</set-url>
+      <set-method>POST</set-method>
+      <set-header name="Content-Type" exists-action="override">
+        <value>application/json</value>
+      </set-header>
+      <set-body>@("{\"tenantId\": \"" + (string)context.Variables["tenantId"] + "\", \"tokens\": " + (string)context.Variables["tokensUsed"] + "}")</set-body>
+    </send-request>
+    <set-header name="x-tenant-id" exists-action="override">
+      <value>@((string)context.Variables["tenantId"])</value>
+    </set-header>
+    <set-header name="x-tokens-consumed" exists-action="override">
+      <value>@((string)context.Variables["tokensUsed"])</value>
+    </set-header>
+    <set-header name="x-remaining-credits" exists-action="override">
+      <value>@{
+             try {
+                 var resp = ((IResponse)context.Variables["consumeResponse"]);
+                 if (resp.StatusCode == 200) {
+                     var body = resp.Body.As&amp;lt;string&amp;gt;();
+                     var obj = Newtonsoft.Json.Linq.JObject.Parse(body);
+                     return obj["remaining"].ToString();
+                 }
+             } catch {}
+             return "unknown";
+         }</value>
+    </set-header>
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

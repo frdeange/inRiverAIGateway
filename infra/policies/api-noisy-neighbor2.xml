@@ -1,0 +1,17 @@
+<policies>
+  <inbound>
+    <base />
+    <set-backend-service backend-id="OpenAI-Balanced" />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+    <llm-token-limit counter-key="@(context.Subscription.Id)" token-quota="5000" token-quota-period="Monthly" estimate-prompt-tokens="true" remaining-quota-tokens-header-name="x-remaining-quota" tokens-consumed-header-name="x-tokens-consumed" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>

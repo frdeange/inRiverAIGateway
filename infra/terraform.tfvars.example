@@ -1,0 +1,91 @@
+###############################################################################
+# Public, non-sensitive configuration. Copy to terraform.tfvars and adjust.
+###############################################################################
+
+project          = "iagw"
+environment      = "prd"
+primary_location = "swedencentral"
+
+extra_tags = {
+  owner       = "platform-team"
+  cost-center = "TBD"
+}
+
+###############################################################################
+# Container App
+###############################################################################
+aca_workload    = "mcp"
+aca_image       = "inriveraigwacr.azurecr.io/mcp-product-catalog:latest"
+aca_target_port = 8080
+
+###############################################################################
+# AI Foundry — 3 regions (matches the Bicep export)
+###############################################################################
+ai_foundry_accounts = {
+  sec = {
+    location = "swedencentral"
+    # deployments  = { ... }  # fill from rawinfra (see TODO list in README)
+    # rai_policies = { ... }
+    # projects     = { ... }
+  }
+  esp = {
+    location = "spaincentral"
+  }
+  frc = {
+    location = "francecentral"
+  }
+}
+
+###############################################################################
+# APIM
+###############################################################################
+apim_sku_name        = "BasicV2_1"
+apim_publisher_email = "admin@gpsazure.com"
+apim_publisher_name  = "inriver-aigw AI Gateway"
+
+# Non-secret named values. Secret ones go in secrets.auto.tfvars.
+apim_named_values = {
+  # example_named_value = {
+  #   display_name = "example-named-value"
+  #   value        = "plain-text-value"
+  #   secret       = false
+  # }
+  # jwt_signing_key = {
+  #   display_name = "jwt-signing-key"
+  #   secret       = true   # value pulled from var.apim_named_value_secrets
+  # }
+}
+
+# Backends (e.g. one per AI Foundry account, plus the MCP Container App).
+apim_backends = {
+  # ai_foundry_sec = {
+  #   url          = "https://iagw-prd-aih-sec.cognitiveservices.azure.com"
+  #   description  = "AI Foundry Sweden Central"
+  #   protocol     = "http"
+  #   tls_validate = true
+  # }
+}
+
+# APIs (one entry per Bicep `service/apis` resource; populate from rawinfra)
+apim_apis = {
+  # openai = {
+  #   display_name          = "Azure OpenAI"
+  #   path                  = "openai"
+  #   subscription_required = true
+  #   import_format         = "openapi+json-link"
+  #   import_content        = "https://raw.githubusercontent.com/.../openapi.json"
+  #   policy_file           = "./policies/openai-api.xml"
+  # }
+}
+
+# Products
+apim_products = {
+  # starter = {
+  #   display_name          = "Starter"
+  #   subscription_required = true
+  #   approval_required     = false
+  #   published             = true
+  #   api_names             = ["openai"]
+  #   group_names           = ["administrators"]
+  # }
+}

@@ -1,0 +1,25 @@
+<policies>
+  <inbound>
+    <base />
+    <llm-emit-token-metric>
+      <dimension name="API ID" />
+      <dimension name="Client IP address" value="@(context.Request.IpAddress)" />
+      <dimension name="Gateway ID" />
+      <dimension name="Location" />
+      <dimension name="Product ID" />
+      <dimension name="Operation ID" />
+      <dimension name="Subscription ID" />
+      <dimension name="User ID" />
+    </llm-emit-token-metric>
+    <set-backend-service id="apim-generated-policy" backend-id="localollama-openai-endpoint" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
